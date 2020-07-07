@@ -27,7 +27,7 @@ client_socket.connect((variables.SERVER_HOST, variables.SERVER_PORT))
 
 message = f"{user}{SEPARATOR}{file_name}{SEPARATOR}{file_size}"
 client_socket.send(message.encode('utf-8'))
-login_code = int(client_socket.recv(-1))
+login_code = int(client_socket.recv(BUFFER_SIZE))
 
 """login codes: 
     [0] user does not exist
