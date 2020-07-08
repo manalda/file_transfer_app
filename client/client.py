@@ -27,13 +27,13 @@ client_socket.connect((variables.SERVER_HOST, variables.SERVER_PORT))
 
 message = f"{user}{SEPARATOR}{file_name}{SEPARATOR}{file_size}"
 client_socket.send(message.encode('utf-8'))
-login_code = int(client_socket.recv(BUFFER_SIZE))
+login_code = client_socket.recv(BUFFER_SIZE).decode('utf-8')
 
 """login codes: 
-    [0] user does not exist
-    [1] ok
+    [ERROR] user does not exist
+    [OK] login was successful
 """
-if login_code != 1:
+if login_code != "OK":
     print("User {0} does not exist".format(user))
     sys.exit(-3)
 
