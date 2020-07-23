@@ -3,6 +3,7 @@ import tqdm
 import variables
 import sys
 import os
+from zipfile import ZipFile
 
 SEPARATOR = ','
 BUFFER_SIZE = 4096
@@ -37,7 +38,12 @@ if login_code != "OK":
     print("User {0} does not exist".format(user))
     sys.exit(-3)
 
-f = open(file_name, 'rb')
+zip_name = "send.zip"
+zip_file = ZipFile(zip_name, 'w')
+zip_file.write(file_name)
+zip_file.close()
+
+f = open(zip_name, 'rb')
 progress = tqdm.tqdm(range(file_size), f"Sending {file_name}", unit="B", unit_scale=True, unit_divisor=1024)
 for _ in progress:
     bytes_read = f.read(BUFFER_SIZE)

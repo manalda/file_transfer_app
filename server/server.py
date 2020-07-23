@@ -1,4 +1,5 @@
 import socket
+from zipfile import ZipFile
 import variables
 import tqdm
 import os
@@ -6,44 +7,57 @@ import os
 SEPARATOR = ','
 BUFFER_SIZE = 4096
 
-server_socket = socket.socket()
-server_socket.bind((variables.HOST, variables.PORT))
-server_socket.listen(5)
+while True:
+    server_socket = socket.socket()
+    server_socket.bind((variables.HOST, variables.PORT))
+    server_socket.listen(5)
+    print("Waiting for connections...")
 
-client, address = server_socket.accept()
-initial_message = server_socket.recv(BUFFER_SIZE).decode('utf-8')
+    client, address = server_socket.accept()
+    print("Connection established")
 
-user, file_name, file_size = initial_message.split(SEPARATOR)
+    initial_message = client.recv(BUFFER_SIZE).decode('utf-8')
 
-with open(variables.ACCOUNTING_FILE, 'r') as f:
-    users = f.readlines()
+    user, file_name, file_size = initial_message.split(SEPARATOR)
 
-login_code = 0
-for l in users:
-    if user == l:
-        login_code = 1
-        break
+    with open(variables.ACCOUNTING_FILE, 'r') as f:
+        users = f.readlines()
 
-client.send(login_code.to_bytes())
-
-if login_code != 1:
-    client.close()
-    server_socket.close()
-    #if login_code == 0 transfer is cancelled
-else:
-    file_name = os.path.basename(file_name)
-    file_size = int(file_size)
-    progress = tqdm.tqdm(range(file_size), f"Receiving {file_name}", unit="B", unit_scale=True, unit_divisor=1024)
-    
-    f = open(file_name, 'wb')
-    for _ in progress:
-        bytes_read = client.recv(BUFFER_SIZE)
-        if not bytes_read:    
+    login_code = "ERROR"
+    for l in users:
+        if user == l:
+            login_code = "OK"
             break
 
-        f.write(bytes_read)
-        progress.update(len(bytes_read))
+    client.send(login_code.encode('utf-8'))
 
-    f.close()
-    client.close()
-    server_socket.close()
+    if login_code != "OK":
+        print("User is incorrect. Closing connection...")
+        client.close()
+        server_socket.close()
+        print("Connection closed.")
+        continue
+    else:
+        print("Receiving file...")
+        file_name = os.path.basename(file_name)
+        file_size = int(file_size)
+        progress = tqdm.tqdm(range(file_size), f"Receiving {file_name}", unit="B", unit_scale=True, unit_divisor=1024)
+        zip_name = "received.zip"
+
+        f = open(zip_name, 'wb')
+        for _ in progress:
+            bytes_read = client.recv(BUFFER_SIZE)
+            if not bytes_read:    
+                break
+
+            f.write(bytes_read)
+            progress.update(len(bytes_read))
+
+        f.close()
+        zip_file = ZipFile(zip_name, 'r')
+        zip_file.extractall()
+        zip_file.close()
+
+        client.close()
+        server_socket.close()
+        print("File received. Connection closed.")
